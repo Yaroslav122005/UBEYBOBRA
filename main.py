@@ -1,10 +1,39 @@
 import os
-import random
-
-import pygame
-import sys
 from random import randint, choice
+import cv2
+import sys
 import time
+import pygame
+video = cv2.VideoCapture("/data/123.avi")
+success, video_image = video.read()
+fps = video.get(cv2.CAP_PROP_FPS)
+window = pygame.display.set_mode((450, 550))
+clock = pygame.time.Clock()
+
+run = success
+while run:
+    clock.tick(fps)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+
+    success, video_image = video.read()
+    if success:
+        video_surf = pygame.image.frombuffer(
+            video_image.tobytes(),
+            video_image.shape[1::-1],
+            "BGR"
+        )
+    else:
+        run = False
+    window.blit(video_surf, (0, 0))
+    pygame.display.flip()
+
+s = 0
+def za_warudo():
+    global score
+    score = 11
+
 n = 0
 lunki = [(30, 130), (180, 130), (330, 130), (30, 280), (180, 280), (330, 280), (30, 430), (180, 430), (330, 430)]
 def load_image(name, colorkey=None):
@@ -13,10 +42,15 @@ def load_image(name, colorkey=None):
     image.set_colorkey(colorkey)
     return image
 pygame.init()
-zawarudo = False
+zawarudo = True
+import pygame, pyglet, ctypes
+
+# setup pyglet & the video
+
 k = pygame.mixer.Sound('../UBEYBOBRA-main/data/norm_music.mp3')
 k.play(-1)
 sound = pygame.mixer.Sound('../UBEYBOBRA-main/data/shot.mp3')
+sound.set_volume(1.2)
 zaw = pygame.mixer.Sound('../UBEYBOBRA-main/data/zaw.mp3')
 
 
@@ -26,8 +60,6 @@ win = pygame.display.set_mode((450, 550))
 pygame.display.set_caption('Убей бобра (Играть со звуком!)')
 hole_list = [False] * 9
 dio = load_image("dio2.png")
-clock = pygame.time.Clock()
-
 score = 0
 
 bobr = load_image("bobr_alive.jpg")
@@ -38,19 +70,9 @@ hole_img = load_image("hole.png")
 bg_img = load_image("BG.png")
 top_bar = load_image("top_bar.png")
 boss_img = load_image("BOSS.png")
-krest = load_image('krest.png')
 bobr_hole = 0
 kill_boss = False
 isBoss = False
-krest = krest.convert()
-colorkey = None
-if colorkey is not None:
-    krest = krest.convert()
-    if colorkey == -1:
-        colorkey = krest.get_at((0, 0))
-    krest.set_colorkey(colorkey)
-else:
-    krest = krest.convert_alpha()
 pygame.mouse.set_visible(False)
 MANUAL_CURSOR = pygame.image.load('data/coursor.png').convert_alpha()
 
@@ -74,13 +96,10 @@ while True:
             sys.exit()
 
 
-
-        if event.type == pygame.MOUSEBUTTONUP:
+        if event.type == pygame.MOUSEBUTTONUP and zawarudo:
+            sound.set_volume(0.2)
             sound.play()
             mouse_pos = pygame.mouse.get_pos()
-            if mouse_pos[0] in list(range(10, 60)) and mouse_pos[1] in list(range(10, 60)):
-                pygame.quit()
-                exit()
             if mouse_pos[0] in list(range(30, 120)) and mouse_pos[1] in list(range(130, 220)) and hole_list[0] and not isBoss:
                 hole_list[0] = False
                 score += 1
@@ -146,10 +165,10 @@ while True:
                 k.stop()
                 pygame.time.set_timer(pygame.USEREVENT, 0)
                 isBoss = True
+                boss = time.time()
                 m = random.choice(lunki)
                 pygame.mixer.music.load('../UBEYBOBRA-main/data/BOSS_MUSIC.mp3')
-                if zawarudo:
-                    pygame.mixer.music.play(-1)
+                pygame.mixer.music.play(-1)
 
             if score == 30:
                 k.stop()
@@ -183,9 +202,8 @@ while True:
     win.blit(bg_img, (0, 100))
 
     win.blit(top_bar, (0, 0))
-    win.blit(krest, (10, 10))
 
-    win.blit(font.render("Очки: " + str(score) + " (10=босс)", True, (0, 0, 0)), (100, 38))
+    win.blit(font.render("Очки: " + str(score) + " (10=босс)" , True, (0, 0, 0)), (100, 38))
 
     if not hole_list[0]:
         win.blit(hole_img, (30, 130))
@@ -233,22 +251,20 @@ while True:
         win.blit(bobr, (330, 430))
 
     if isBoss:
-        #if score == 19:
-            #if not zawarudo:
-                #pygame.mixer.stop()
-                #k.stop()
-                #m = (0, 0)
-                #win.blit(dio, m)
-                #if n == 0:
-                #    zaw.play(-1)
-                #score %= 12
-                #n += 1
-        #else:
+        if (time.time() - boss) % 2 <= 1:
+            m = random.choice(lunki)
         win.blit(boss_img, m)
-
+        if score == 19 and s == 0 or s == 1:
+            win.blit(dio, (0, 0))
+            zaw.play()
+            if s == 0:
+                x = time.time()
+                s += 1
+            if time.time() - x >= 4 and s == 1:
+                za_warudo()
+                s += 1
     if pygame.mouse.get_focused():
         win.blit(MANUAL_CURSOR, (pygame.mouse.get_pos()))
     pygame.display.flip()
-    clock.tick(60)
 
 pygame.quit()
